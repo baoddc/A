@@ -12,7 +12,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 3.5,
     unit: 'tấn',
-    info: ['Diện tích: 66m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 82m2', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'go',
