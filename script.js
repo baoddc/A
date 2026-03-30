@@ -120,7 +120,7 @@ const INITIAL_AREAS = [
     id: 'tap-ket',
     name: 'Tập kết',
     fullName: 'Khu vực tập kết thùng rỗng và sỉ',
-    description: 'Khu vực đa năng dùng để tập kết tạm thời các loại thùng rỗng.',
+    description: 'Khu vực đa năng dùng để tập kết tạm thời các loại thùng rỗng, thùng chứ sỉ cắt và sỉ đất.',
     color: '#f3a678',
     top: '63%',
     left: '0%',
