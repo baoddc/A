@@ -85,7 +85,7 @@ const INITIAL_AREAS = [
     width: '84%',
     height: '12%',
     capacity: 0,
-    maxCapacity: 50,
+    maxCapacity: 100,
     unit: 'tấn',
     info: ['Diện tích: 135m2', 'Tình trạng: Đang sử dụng']
   },
