@@ -12,7 +12,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 3.5,
     unit: 'tấn',
-    info: ['Diện tích: 82m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 82m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'go',
@@ -27,7 +27,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 10,
     unit: 'tấn',
-    info: ['Diện tích: 82m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 82m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'loai-1',
@@ -42,7 +42,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 350,
     unit: 'tấn',
-    info: ['Diện tích: 522m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 522m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'day-dai',
@@ -57,7 +57,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 10,
     unit: 'tấn',
-    info: ['Diện tích: 55m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 55m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'mat-khoan',
@@ -72,7 +72,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 15,
     unit: 'tấn',
-    info: ['Diện tích: 45m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 45m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'my-thuy',
@@ -87,7 +87,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 100,
     unit: 'tấn',
-    info: ['Diện tích: 135m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 135m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'tram-dien',
@@ -114,7 +114,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 50,
     unit: 'cái',
-    info: ['Diện tích: 22m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 22m²', 'Tình trạng: Đang sử dụng']
   },
   {
     id: 'tap-ket',
@@ -129,7 +129,7 @@ const INITIAL_AREAS = [
     capacity: 0,
     maxCapacity: 50,
     unit: 'tấn',
-    info: ['Diện tích: 80m2', 'Tình trạng: Đang sử dụng']
+    info: ['Diện tích: 80m²', 'Tình trạng: Đang sử dụng']
   }
 ];
 
