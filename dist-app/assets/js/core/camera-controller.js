@@ -28,13 +28,30 @@
       this.overlayEl = null;
     }
 
+    isFrontCamera(device) {
+      if (!device) return false;
+      const label = (device.label || '').toLowerCase();
+      return /front|trước|truoc|user|selfie|facing\s*front|face/i.test(label);
+    }
+
+    filterCameras(devices) {
+      if (!Array.isArray(devices) || devices.length === 0) return [];
+      // Lọc bỏ hoàn toàn camera trước (selfie/user)
+      const rearAndAux = devices.filter(d => !this.isFrontCamera(d));
+      if (rearAndAux.length > 0) {
+        return rearAndAux;
+      }
+      // Giữ lại thiết bị nếu máy tính PC chỉ có duy nhất 1 webcam để test
+      return devices;
+    }
+
     async init() {
       if (!this.container) return;
       try {
         if (typeof Html5Qrcode !== 'undefined' && Html5Qrcode.getCameras) {
           const devices = await Html5Qrcode.getCameras();
           if (Array.isArray(devices) && devices.length > 0) {
-            this.cameras = devices;
+            this.cameras = this.filterCameras(devices);
           }
         }
       } catch (e) {
@@ -152,15 +169,16 @@
 
     onScanStarted() {
       // Cho thời gian video gắn stream hoàn tất
-      setTimeout(() => {
+      setTimeout(async () => {
         this.updateRunningTrack();
+        await this.refreshCameras();
         if (this.currentZoom !== 1.0) {
           this.setZoom(this.currentZoom, true);
         }
         if (this.isTorchOn) {
           this.applyTorch(true);
         }
-      }, 400);
+      }, 350);
     }
 
     updateRunningTrack() {
@@ -324,25 +342,98 @@
       }
     }
 
+    getCameraDisplayName(cam, index) {
+      if (!cam) return 'Cam Sau';
+      const label = (cam.label || '').toLowerCase();
+      // Nhận diện camera phụ góc siêu rộng 0.6x
+      if (/wide|ultra|0\.[56]/i.test(label)) {
+        return 'Cam 0.6x';
+      }
+      // Nhận diện camera phụ tele / zoom
+      if (/tele|zoom|[2-5]x/i.test(label)) {
+        return 'Cam Zoom';
+      }
+      // Nhận diện camera phụ macro
+      if (/macro/i.test(label)) {
+        return 'Cam Macro';
+      }
+      // Nếu có nhiều camera sau/phụ
+      if (this.cameras && this.cameras.length > 1) {
+        if (index === 0 || /main|chính|0,\s*facing\s*back/i.test(label)) {
+          return 'Cam Chính';
+        }
+        if (this.cameras.length === 2) {
+          return 'Cam Phụ';
+        }
+        return `Cam Phụ ${index}`;
+      }
+      return 'Cam Sau';
+    }
+
+    updateSwitchButtonVisibility() {
+      if (!this.overlayEl) return;
+      const btnSwitch = this.overlayEl.querySelector('#btnCamSwitch');
+      if (btnSwitch) {
+        // Chỉ hiển thị nút chuyển camera nếu thực sự có từ 2 camera sau/phụ trở lên
+        btnSwitch.style.display = (this.cameras && this.cameras.length > 1) ? 'inline-flex' : 'none';
+      }
+    }
+
+    async refreshCameras(activeDeviceId = null) {
+      try {
+        if (typeof Html5Qrcode !== 'undefined' && Html5Qrcode.getCameras) {
+          const devices = await Html5Qrcode.getCameras();
+          if (Array.isArray(devices) && devices.length > 0) {
+            this.cameras = this.filterCameras(devices);
+
+            let targetId = activeDeviceId;
+            if (!targetId && this.videoTrack && typeof this.videoTrack.getSettings === 'function') {
+              const settings = this.videoTrack.getSettings();
+              if (settings && settings.deviceId) {
+                targetId = settings.deviceId;
+              }
+            }
+            if (targetId) {
+              const idx = this.cameras.findIndex(c => c.id === targetId);
+              if (idx !== -1) {
+                this.currentCameraIndex = idx;
+              }
+            } else if (this.videoTrack && this.videoTrack.label) {
+              const trackLabel = this.videoTrack.label.toLowerCase();
+              const idx = this.cameras.findIndex(c => (c.label || '').toLowerCase() === trackLabel);
+              if (idx !== -1) {
+                this.currentCameraIndex = idx;
+              }
+            }
+            this.updateSwitchButtonVisibility();
+            this.updateCamLabel();
+          }
+        }
+      } catch (e) {
+        console.warn('CameraController: Lỗi refresh cameras:', e);
+      }
+    }
+
     updateCamLabel() {
       if (!this.overlayEl || !this.cameras || this.cameras.length === 0) return;
+      const btnSwitch = this.overlayEl.querySelector('#btnCamSwitch');
       const badge = this.overlayEl.querySelector('#camLabelBadge');
-      if (badge) {
-        const cam = this.cameras[this.currentCameraIndex];
-        let label = cam ? (cam.label || `Cam ${this.currentCameraIndex + 1}`) : 'Đổi Cam';
-        // Đơn giản hóa tên hiển thị: phát hiện camera sau / trước / 0.6x
-        if (/wide|ultra|0\.6/i.test(label)) {
-          label = 'Cam 0.6x';
-        } else if (/tele|zoom|2x|3x/i.test(label)) {
-          label = 'Cam Zoom';
-        } else if (/back|rear|sau/i.test(label)) {
-          label = `Cam Sau ${this.cameras.length > 2 ? this.currentCameraIndex + 1 : ''}`.trim();
-        } else if (/front|user|trước/i.test(label)) {
-          label = 'Cam Trước';
-        } else if (label.length > 10) {
-          label = label.substring(0, 8) + '..';
-        }
-        badge.textContent = label;
+      if (!btnSwitch || !badge) return;
+
+      const currentCam = this.cameras[this.currentCameraIndex];
+      const currentName = this.getCameraDisplayName(currentCam, this.currentCameraIndex);
+
+      if (this.cameras.length > 1) {
+        const nextIndex = (this.currentCameraIndex + 1) % this.cameras.length;
+        const nextCam = this.cameras[nextIndex];
+        const nextName = this.getCameraDisplayName(nextCam, nextIndex);
+
+        // Hiển thị camera phụ/chính tiếp theo mà nút sẽ chuyển tới
+        badge.textContent = nextName;
+        btnSwitch.title = `Đang dùng: ${currentName}. Bấm để chuyển sang: ${nextName}`;
+      } else {
+        badge.textContent = currentName;
+        btnSwitch.title = `Đang dùng: ${currentName}`;
       }
     }
 

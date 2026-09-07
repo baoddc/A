@@ -826,7 +826,7 @@ function initKiemKeApp() {
   let kkCameraController = null;
   let activeCameraDeviceId = null;
 
-  function startCameraScanner(preferredDeviceId = null) {
+  async function startCameraScanner(preferredDeviceId = null) {
     if (typeof Html5Qrcode === 'undefined') {
       if (modalLastScanAlert) {
         modalLastScanAlert.className = 'alert alert-warning py-2 px-3 small mb-2';
@@ -841,7 +841,7 @@ function initKiemKeApp() {
     }
 
     // Dừng scanner cũ nhưng giữ overlay nếu chỉ đổi camera
-    stopCameraScanner(false);
+    await stopCameraScanner(false);
 
     // Khởi tạo controller overlay
     if (!kkCameraController && typeof CameraController !== 'undefined') {
@@ -853,7 +853,7 @@ function initKiemKeApp() {
           startCameraScanner(newDeviceId);
         }
       });
-      kkCameraController.init();
+      await kkCameraController.init();
     }
 
     setTimeout(() => {
@@ -926,53 +926,51 @@ function initKiemKeApp() {
   }
 
   function startCameraScannerWithFacing(config, onScanSuccess, onScannerReady) {
+    // 1. Ưu tiên camera sau (facingMode: environment)
     html5QrCodeScanner.start(
       { facingMode: 'environment' },
       config,
       onScanSuccess,
       () => {}
     ).then(onScannerReady).catch(() => {
-      return html5QrCodeScanner.start(
-        { facingMode: 'user' },
-        config,
-        onScanSuccess,
-        () => {}
-      ).then(onScannerReady);
-    }).catch(() => {
+      // 2. Nếu thất bại, lấy danh sách và CHỈ CHỌN camera sau/phụ (loại bỏ hoàn toàn camera trước)
       if (Html5Qrcode.getCameras) {
         return Html5Qrcode.getCameras().then(devices => {
           if (devices && devices.length > 0) {
-            activeCameraDeviceId = devices[0].id;
-            return html5QrCodeScanner.start(devices[0].id, config, onScanSuccess, () => {}).then(onScannerReady);
+            const isFront = (d) => /front|trước|truoc|user|selfie|facing\s*front|face/i.test(d.label || '');
+            const backCameras = devices.filter(d => !isFront(d));
+            const targetCam = backCameras.length > 0 ? backCameras[0] : devices[0];
+            activeCameraDeviceId = targetCam.id;
+            return html5QrCodeScanner.start(targetCam.id, config, onScanSuccess, () => {}).then(onScannerReady);
           }
-          throw new Error('Không tìm thấy camera');
+          throw new Error('Không tìm thấy camera sau');
         });
       }
-      throw new Error('Không thể mở camera');
+      throw new Error('Không thể mở camera sau');
     }).catch(err => {
-      console.warn('Không thể mở camera:', err);
+      console.warn('Không thể mở camera sau:', err);
       if (modalLastScanAlert) {
         modalLastScanAlert.className = 'alert alert-warning py-2 px-3 small mb-2';
-        modalLastScanAlert.innerHTML = '<i class="bi bi-info-circle me-1"></i> Không thể truy cập camera. Bạn có thể nhập tay hoặc dùng súng quét mã vạch!';
+        modalLastScanAlert.innerHTML = '<i class="bi bi-info-circle me-1"></i> Không thể truy cập camera sau. Bạn có thể nhập tay hoặc dùng súng quét mã vạch!';
         modalLastScanAlert.classList.remove('d-none');
       }
     });
   }
 
-  function stopCameraScanner(destroyController = true) {
+  async function stopCameraScanner(destroyController = true) {
     if (destroyController && kkCameraController) {
       try { kkCameraController.destroy(); } catch (e) {}
       kkCameraController = null;
     }
     if (html5QrCodeScanner) {
       try {
-        html5QrCodeScanner.stop().then(() => {
-          html5QrCodeScanner.clear();
-          html5QrCodeScanner = null;
-        }).catch(() => {
-          html5QrCodeScanner = null;
-        });
+        if (html5QrCodeScanner.isScanning) {
+          await html5QrCodeScanner.stop();
+        }
+        html5QrCodeScanner.clear();
       } catch (e) {
+        console.warn('stopCameraScanner error:', e);
+      } finally {
         html5QrCodeScanner = null;
       }
     }
