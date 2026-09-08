@@ -31,6 +31,16 @@
       "source": "/pages/trang-chu/home.html",
       "destination": "/",
       "permanent": false
+    },
+    {
+      "source": "/pages/vi-tri-ton",
+      "destination": "/pages/tem-nhan-kiem-ke/vi-tri-ton.html",
+      "permanent": false
+    },
+    {
+      "source": "/pages/vi-tri-ton.html",
+      "destination": "/pages/tem-nhan-kiem-ke/vi-tri-ton.html",
+      "permanent": false
     }
   ],
   "rewrites": [
