@@ -190,7 +190,7 @@ Quy tắc bóc tách:
    - stt: Số thứ tự dòng (1, 2, 3...)
    - maVatTu: Cột 'Mã hàng / Material' (ví dụ '10001189')
    - tenVatTu: Cột 'Tên hàng / Material Description' (ví dụ 'Thép phôi kẽm Z275 G450'). Tự động ghép Lô/Batch vào giữa tên vật tư (ví dụ 'Thép phôi kẽm Z275 G450' + '1.5x348VN' -> 'Thép phôi kẽm 1.5x348VN Z275 G450'; '3x451VN' -> 'Thép phôi kẽm 3.0x451VN Z275 G450').
-   - batch: Cột 'Lô / Batch' (ví dụ '1.8x351VN' hoặc '2.5x350VN' hoặc '1.5x348VN')
+   - batch: Cột 'Lô / Batch'. QUAN TRỌNG: Lấy chính xác nguyên văn từng ký tự như in trên phiếu xuất kho, giữ nguyên toàn bộ chữ hoa/chữ thường và ký tự số (ví dụ trên phiếu in '2X349VN' thì phải trả về đúng '2X349VN', in '2.5X350VN' thì trả về đúng '2.5X350VN', tuyệt đối không tự ý đổi 'X' thành 'x', không tự ý thêm '.0').
 8. ghiChu: Luôn trả về chuỗi rỗng "".
 
 Format JSON mong đợi:

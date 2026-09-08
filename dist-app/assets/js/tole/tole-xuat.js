@@ -1244,8 +1244,7 @@ function renderItemCards() {
         updateTitle();
       });
       batchInp.addEventListener('change', (e) => {
-        let newBatch = e.target.value.trim();
-        newBatch = formatBatchForMaterialName(newBatch);
+        const newBatch = e.target.value.trim();
         item.batch = newBatch;
         batchInp.value = newBatch;
         if (newBatch && item.tenVatTu) {
@@ -1430,24 +1429,24 @@ function populateFieldsFromOcr(data) {
   // 8. Tự động sinh các thẻ mặt hàng (Multi-Item Cards) từ ảnh
   if (Array.isArray(data.items) && data.items.length > 0) {
     multiItemsData = data.items.map(it => {
-      const batch = formatBatchForMaterialName(it.batch || '');
+      const rawBatch = (it.batch || '').trim();
       const rawTen = (it.tenVatTu || '').trim();
       return {
         id: Math.random().toString(36).slice(2),
         maVatTu: it.maVatTu || '',
-        tenVatTu: mergeBatchIntoTenVatTu(rawTen, batch),
-        batch: batch,
+        tenVatTu: mergeBatchIntoTenVatTu(rawTen, rawBatch),
+        batch: rawBatch,
         rolls: []
       };
     });
   } else {
-    const batch = formatBatchForMaterialName(data.batch || '');
+    const rawBatch = (data.batch || '').trim();
     const rawTen = (data.tenVatTu || '').trim();
     multiItemsData = [{
       id: Math.random().toString(36).slice(2),
       maVatTu: data.maVatTu || '',
-      tenVatTu: mergeBatchIntoTenVatTu(rawTen, batch),
-      batch: batch,
+      tenVatTu: mergeBatchIntoTenVatTu(rawTen, rawBatch),
+      batch: rawBatch,
       rolls: []
     }];
   }
@@ -1732,7 +1731,7 @@ function openEditDataModal() {
   const editTenVtInp = commonFieldsContainer.querySelector('[name="col_6"]');
   if (editBatchInp && editTenVtInp) {
     editBatchInp.addEventListener('change', () => {
-      const b = formatBatchForMaterialName(editBatchInp.value);
+      const b = editBatchInp.value.trim();
       editBatchInp.value = b;
       if (b && editTenVtInp.value.trim()) {
         editTenVtInp.value = mergeBatchIntoTenVatTu(editTenVtInp.value.trim(), b);
