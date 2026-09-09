@@ -23,6 +23,8 @@ const HSE_MODULES = [
         colorClass: 'icon-green',
         sheetName: 'Kế hoạch công việc',
         sheetId: '0',
+        category: 'plan',
+        categoryName: 'Kế hoạch & Lịch',
         keywords: ['kế hoạch', 'cv', 'deadline', 'trạng thái']
     },
     {
@@ -33,6 +35,8 @@ const HSE_MODULES = [
         colorClass: 'icon-blue',
         sheetName: 'Ảnh mẫu kho',
         sheetId: '426924190',
+        category: 'media',
+        categoryName: 'Hình ảnh & 5S',
         keywords: ['ảnh', 'mẫu', 'kho', 'gallery']
     },
     {
@@ -43,6 +47,8 @@ const HSE_MODULES = [
         colorClass: 'icon-amber',
         sheetName: 'Lịch vệ sinh',
         sheetId: '726858482',
+        category: 'plan',
+        categoryName: 'Kế hoạch & Lịch',
         keywords: ['lịch', 'vệ sinh', 'ca trực']
     },
     {
@@ -53,6 +59,8 @@ const HSE_MODULES = [
         colorClass: 'icon-blue',
         sheetName: 'Ảnh vệ sinh',
         sheetId: '160925326',
+        category: 'media',
+        categoryName: 'Hình ảnh & 5S',
         keywords: ['ảnh', 'vệ sinh', 'thực tế']
     },
     {
@@ -63,6 +71,8 @@ const HSE_MODULES = [
         colorClass: 'icon-green',
         sheetName: 'Checklist kiểm tra thiết bị',
         sheetId: '20754979',
+        category: 'plan',
+        categoryName: 'Kế hoạch & Lịch',
         keywords: ['checklist', 'kiểm tra', 'thiết bị']
     },
     {
@@ -73,6 +83,8 @@ const HSE_MODULES = [
         colorClass: 'icon-amber',
         sheetName: 'Công cụ dụng cụ (CCDC)',
         sheetId: '414597666',
+        category: 'tools',
+        categoryName: 'CCDC & Tiêu chuẩn',
         keywords: ['ccdc', 'công cụ', 'dụng cụ', 'tồn kho']
     },
     {
@@ -83,6 +95,8 @@ const HSE_MODULES = [
         colorClass: 'icon-red',
         sheetName: 'Tiêu chuẩn loại bỏ Công cụ dụng cụ',
         sheetId: '1346553726',
+        category: 'tools',
+        categoryName: 'CCDC & Tiêu chuẩn',
         keywords: ['loại bỏ', 'thanh lý', 'tiêu chuẩn']
     },
     {
@@ -93,6 +107,8 @@ const HSE_MODULES = [
         colorClass: 'icon-amber',
         sheetName: 'Danh mục phân loại phế liệu',
         sheetId: '1085802127',
+        category: 'tools',
+        categoryName: 'CCDC & Tiêu chuẩn',
         keywords: ['phế liệu', 'danh mục', 'phân loại']
     },
     {
@@ -103,6 +119,8 @@ const HSE_MODULES = [
         colorClass: 'icon-blue',
         sheetName: 'Quy định phân loại phế liệu',
         sheetId: '1019224573',
+        category: 'tools',
+        categoryName: 'CCDC & Tiêu chuẩn',
         keywords: ['quy định', 'hướng dẫn', 'phế liệu']
     },
     {
@@ -113,6 +131,8 @@ const HSE_MODULES = [
         colorClass: 'icon-red',
         sheetName: 'Khắc phục 5S',
         sheetId: '794649355',
+        category: 'fix',
+        categoryName: 'Khắc phục 5S',
         keywords: ['5s', 'khắc phục', 'lỗi']
     },
     {
@@ -123,6 +143,8 @@ const HSE_MODULES = [
         colorClass: 'icon-amber',
         sheetName: 'Thi đua 5S',
         sheetId: '1047465605',
+        category: 'media',
+        categoryName: 'Hình ảnh & 5S',
         keywords: ['thi đua', 'điểm số', 'xếp hạng', 'ảnh', 'hình ảnh']
     }
 ];
@@ -240,21 +262,70 @@ const ICONS = {
 // --- Dashboard Manager ---
 class DashboardManager {
     constructor() {
+        this.hubView = document.getElementById('hubView');
+        this.workspaceView = document.getElementById('workspaceView');
+        this.workspaceTitle = document.getElementById('workspaceTitle');
+        this.workspaceBreadcrumb = document.getElementById('workspaceBreadcrumb');
+        this.workspaceActions = document.getElementById('workspaceActions');
+        this.workspaceBody = document.getElementById('workspaceBody');
+        this.btnBackHub = document.getElementById('btnBackHub');
+        this.categoryTabs = document.getElementById('categoryTabs');
+
         this.grid = document.getElementById('moduleGrid');
         this.searchField = document.getElementById('globalSearch');
         this.overlay = document.getElementById('loadingOverlay');
         this.modal = document.getElementById('detailModal');
-        this.modalBody = document.getElementById('modalBody');
+        this.modalBody = this.workspaceBody || document.getElementById('modalBody');
         this.modalTitle = document.getElementById('modalTitle');
 
         this.modules = HSE_MODULES;
+        this.activeCategory = 'all';
         this.init();
     }
 
     init() {
+        this.updateCategoryCounts();
         this.renderModules(this.modules);
         this.setupEventListeners();
         this.checkAuth();
+    }
+
+    updateCategoryCounts() {
+        const counts = {
+            all: this.modules.length,
+            plan: this.modules.filter(m => m.category === 'plan').length,
+            media: this.modules.filter(m => m.category === 'media').length,
+            tools: this.modules.filter(m => m.category === 'tools').length,
+            fix: this.modules.filter(m => m.category === 'fix').length
+        };
+        const elAll = document.getElementById('countAll');
+        if (elAll) elAll.textContent = counts.all;
+        const elPlan = document.getElementById('countPlan');
+        if (elPlan) elPlan.textContent = counts.plan;
+        const elMedia = document.getElementById('countMedia');
+        if (elMedia) elMedia.textContent = counts.media;
+        const elTools = document.getElementById('countTools');
+        if (elTools) elTools.textContent = counts.tools;
+        const elFix = document.getElementById('countFix');
+        if (elFix) elFix.textContent = counts.fix;
+    }
+
+    switchView(viewName) {
+        if (viewName === 'workspace') {
+            if (this.hubView) this.hubView.style.display = 'none';
+            if (this.workspaceView) {
+                this.workspaceView.style.display = 'block';
+                this.workspaceView.classList.add('active');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            if (this.workspaceView) this.workspaceView.style.display = 'none';
+            if (this.hubView) {
+                this.hubView.style.display = 'block';
+                this.hubView.classList.add('active');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }
 
     checkAuth() {
@@ -326,15 +397,14 @@ class DashboardManager {
     // renderDate function removed
 
     renderModules(modulesToRender) {
-        // Clear previous cards except loading overlay
         const loading = this.overlay;
         this.grid.innerHTML = '';
-        this.grid.appendChild(loading);
-
-        this.overlay.style.display = 'none';
+        if (loading) this.grid.appendChild(loading);
+        if (this.overlay) this.overlay.style.display = 'none';
 
         if (modulesToRender.length === 0) {
-            this.grid.innerHTML += `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">Không tìm thấy kết quả nào cho "${this.searchField.value}"</p>`;
+            const query = this.searchField ? this.searchField.value : '';
+            this.grid.innerHTML += `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">Không tìm thấy chức năng nào phù hợp${query ? ` với từ khóa "${query}"` : ''}</p>`;
             return;
         }
 
@@ -342,11 +412,14 @@ class DashboardManager {
             const card = document.createElement('div');
             card.className = 'glass-card';
             card.style.cursor = 'pointer';
-            card.onclick = () => app.openDetail(module.id);
+            card.onclick = () => this.openWorkspace(module.id);
             card.innerHTML = `
                 <div class="card-top">
-                    <div class="card-icon ${module.colorClass}">
-                        ${ICONS[module.icon] || ICONS.clipboard}
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div class="card-icon ${module.colorClass}">
+                            ${ICONS[module.icon] || ICONS.clipboard}
+                        </div>
+                        <span class="card-category-tag">${module.categoryName || ''}</span>
                     </div>
                     <div class="card-header">
                         <h3>${module.title}</h3>
@@ -354,9 +427,9 @@ class DashboardManager {
                     </div>
                 </div>
                 <div class="card-footer">
-                    <span class="status-badge badge-live">Live</span>
+                    <span class="status-badge badge-live">Hoạt động</span>
                     <button class="btn-more">
-                        Xem chi tiết
+                        Mở làm việc
                         ${ICONS['arrow-right']}
                     </button>
                 </div>
@@ -367,48 +440,94 @@ class DashboardManager {
 
     setupEventListeners() {
         // Global Search
-        this.searchField.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = this.modules.filter(m =>
-                m.title.toLowerCase().includes(query) ||
-                m.desc.toLowerCase().includes(query) ||
-                m.keywords.some(k => k.includes(query))
-            );
-            this.renderModules(filtered);
-        });
+        if (this.searchField) {
+            this.searchField.addEventListener('input', () => this.filterModules());
+        }
 
-        // Close Modal
-        document.getElementById('closeModal').onclick = () => this.closeModal();
-        window.onclick = (e) => { if (e.target === this.modal) this.closeModal(); };
+        // Category Tabs
+        if (this.categoryTabs) {
+            const pills = this.categoryTabs.querySelectorAll('.tab-pill');
+            pills.forEach(pill => {
+                pill.addEventListener('click', () => {
+                    pills.forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+                    this.activeCategory = pill.dataset.category || 'all';
+                    this.filterModules();
+                });
+            });
+        }
 
-        // ESC key to close modal
+        // Back button to Hub
+        if (this.btnBackHub) {
+            this.btnBackHub.addEventListener('click', () => {
+                this.switchView('hub');
+            });
+        }
+
+        // Close Modal if detailModal exists
+        const btnCloseModal = document.getElementById('closeModal');
+        if (btnCloseModal) {
+            btnCloseModal.onclick = () => this.closeModal();
+        }
+        window.onclick = (e) => { 
+            if (this.modal && e.target === this.modal) this.closeModal(); 
+        };
+
+        // ESC key to return or close modal
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
-                this.closeModal();
+            if (e.key === 'Escape') {
+                if (this.modal && this.modal.classList.contains('active')) {
+                    this.closeModal();
+                } else if (this.workspaceView && this.workspaceView.style.display !== 'none') {
+                    this.switchView('hub');
+                }
             }
         });
     }
 
-    async openDetail(moduleId) {
+    filterModules() {
+        const query = (this.searchField ? this.searchField.value : '').toLowerCase().trim();
+        const filtered = this.modules.filter(m => {
+            const matchCategory = this.activeCategory === 'all' || m.category === this.activeCategory;
+            const matchQuery = !query ||
+                m.title.toLowerCase().includes(query) ||
+                m.desc.toLowerCase().includes(query) ||
+                (m.keywords && m.keywords.some(k => k.includes(query)));
+            return matchCategory && matchQuery;
+        });
+        this.renderModules(filtered);
+    }
+
+    async openWorkspace(moduleId) {
         const module = this.modules.find(m => m.id === moduleId);
         if (!module) return;
 
-        this.currentModuleId = moduleId; // Store current module ID
-        this.modalTitle.textContent = module.title;
-        this.modalBody.innerHTML = '<div class="spinner" style="margin: 2rem auto;"></div>';
-        this.modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+        this.currentModuleId = moduleId;
+        if (this.workspaceTitle) this.workspaceTitle.textContent = module.title;
+        if (this.workspaceBreadcrumb) this.workspaceBreadcrumb.textContent = `HSE / ${module.categoryName || 'Chức năng'} / ${module.title}`;
+        if (this.workspaceActions) this.workspaceActions.innerHTML = '';
+
+        if (this.workspaceBody) {
+            this.workspaceBody.innerHTML = '<div class="spinner" style="margin: 4rem auto;"></div>';
+        }
+        this.switchView('workspace');
 
         try {
             const data = await GSheetsService.fetchSheetData(module.sheetId, module.id);
             this.renderModalContent(moduleId, data);
         } catch (err) {
-            this.modalBody.innerHTML = `<p class="error-msg" style="color: var(--danger);">Lỗi tải dữ liệu: ${err.message}</p>`;
+            if (this.workspaceBody) {
+                this.workspaceBody.innerHTML = `<p class="error-msg" style="color: var(--danger); text-align: center; padding: 2rem;">Lỗi tải dữ liệu: ${err.message}</p>`;
+            }
         }
     }
 
+    openDetail(moduleId) {
+        return this.openWorkspace(moduleId);
+    }
+
     closeModal() {
-        this.modal.classList.remove('active');
+        if (this.modal) this.modal.classList.remove('active');
         document.body.style.overflow = 'auto';
     }
 
@@ -421,7 +540,7 @@ class DashboardManager {
             this.renderModuleByMonthGroups(data, moduleId);
         } else {
             if (!data || data.length === 0) {
-                this.modalBody.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Không có dữ liệu hiển thị.</p>';
+                this.modalBody.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 3rem;">Không có dữ liệu hiển thị.</p>';
                 return;
             }
             this.renderTable(data);
@@ -446,10 +565,9 @@ class DashboardManager {
             let monthYear = 'Chưa xác định';
             const parts = dateStr.split(/[-/]/);
             if (parts.length === 3) {
-                // Handle YYYY-MM-DD or DD/MM/YYYY
-                if (parts[0].length === 4) { // YYYY-MM-DD
+                if (parts[0].length === 4) {
                     monthYear = `${parts[1]}/${parts[0]}`;
-                } else { // DD/MM/YYYY
+                } else {
                     monthYear = `${parts[1]}/${parts[2]}`;
                 }
             }
@@ -465,17 +583,21 @@ class DashboardManager {
         });
 
         let html = `
-            <div class="month-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div style="margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.25rem;">Chọn tháng làm việc</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Nhấp vào một tháng bên dưới để xem danh sách chi tiết các đầu việc.</p>
+            </div>
+            <div class="month-grid">
         `;
 
         sortedMonths.forEach(month => {
             html += `
-                <div class="glass-card month-card" onclick="app.showMonthDetail('${month}', '${moduleId}')" style="cursor: pointer; padding: 1.5rem; text-align: center; transition: var(--transition);">
+                <div class="glass-card month-card" onclick="app.showMonthDetail('${month}', '${moduleId}')">
                     <div style="color: var(--primary); margin-bottom: 0.5rem;">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     </div>
-                    <div style="font-weight: 700; font-size: 1.1rem;">Tháng ${month}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">${groups[month].length} dòng dữ liệu</div>
+                    <div style="font-weight: 700; font-size: 1.15rem;">Tháng ${month}</div>
+                    <div style="font-size: 0.82rem; color: var(--primary); margin-top: 0.35rem; font-weight: 500;">${groups[month].length} đầu mục công việc</div>
                 </div>
             `;
         });
@@ -491,13 +613,13 @@ class DashboardManager {
         const monthRows = this.currentModuleGroups[month];
         const displayData = [headers, ...monthRows];
 
-        this.renderTable(displayData, true);
+        this.renderTable(displayData);
 
         // Add back button
         const backBtn = document.createElement('div');
         backBtn.innerHTML = `
-            <button class="btn-more" style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="transform: rotate(180deg);"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            <button class="btn-back-hub" style="margin-bottom: 1.25rem;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 Quay lại danh sách tháng
             </button>
         `;
@@ -510,7 +632,13 @@ class DashboardManager {
         const rows = data.slice(1);
         const moduleId = this.currentModuleId;
 
-        let html = '<div class="table-responsive"><table class="hse-table"><thead><tr>';
+        let html = `
+            <div class="workspace-search-wrap">
+                <input type="text" id="tableFilterInput" class="workspace-search-input" placeholder="🔍 Tìm nhanh trong bảng tính...">
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Tổng cộng: <strong style="color: var(--primary);">${rows.length}</strong> dòng</div>
+            </div>
+            <div class="table-responsive"><table class="hse-table" id="hseDataTable"><thead><tr>
+        `;
         headers.forEach(h => {
             const isWide = h && (h.toLowerCase().includes('nội dung') || h.toLowerCase().includes('mô tả'));
             if (isWide) {
@@ -588,6 +716,21 @@ class DashboardManager {
 
         this.modalBody.innerHTML = html;
 
+        // Attach quick table search filter
+        const filterInput = document.getElementById('tableFilterInput');
+        if (filterInput) {
+            filterInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                const table = document.getElementById('hseDataTable');
+                if (!table) return;
+                const trs = table.querySelectorAll('tbody tr');
+                trs.forEach(tr => {
+                    const text = tr.textContent.toLowerCase();
+                    tr.style.display = text.includes(term) ? '' : 'none';
+                });
+            });
+        }
+
         // Inject dynamic styles for status if needed
         if (!document.getElementById('status-styles')) {
             const style = document.createElement('style');
@@ -628,9 +771,23 @@ class DashboardManager {
     renderGallery(data, moduleId) {
         const rows = (data && data.length > 1) ? data.slice(1) : [];
 
+        if (this.workspaceActions) {
+            this.workspaceActions.innerHTML = `
+                <label for="uploadPhoto_${moduleId}" class="btn-more" style="background: var(--primary); color: white; padding: 0.55rem 1.1rem; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; margin: 0;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Upload Hình Ảnh</span>
+                </label>
+            `;
+        }
+
         let uploadSectionHtml = `
-            <div class="upload-section" style="display: flex; justify-content: flex-end; margin-bottom: 0.8rem;">
-                <label for="uploadPhoto_${moduleId}" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 500; transition: var(--transition); margin: 0.8rem 0 0 0">
+            <div class="upload-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <div style="font-size: 0.9rem; color: var(--text-muted);">Tổng cộng: <strong style="color: var(--primary);">${rows.length}</strong> hình ảnh</div>
+                <label for="uploadPhoto_${moduleId}" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 500; transition: var(--transition);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
@@ -1024,11 +1181,20 @@ class DashboardManager {
     renderScrapRegs(data) {
         const rows = (data && data.length > 1) ? data.slice(1) : [];
 
+        if (this.workspaceActions) {
+            this.workspaceActions.innerHTML = `
+                <button class="btn-more" onclick="app.triggerPdfUpload()" style="background: var(--primary); color: white; padding: 0.55rem 1.1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Tải lên Quy định (PDF)</span>
+                </button>
+            `;
+        }
+
         let html = `
             <div class="scrap-regs-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">Danh sách quy định phân loại phế liệu đã ban hành.</p>
-                <button class="btn-more" onclick="app.triggerPdfUpload()" style="background: var(--primary); color: white; padding: 0.6rem 1.2rem; border-radius: 8px; border: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">Danh sách quy định phân loại phế liệu đã ban hành (${rows.length} tài liệu).</p>
+                <button class="btn-more" onclick="app.triggerPdfUpload()" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 8px; border: none; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     Tải lên Quy định (PDF)
                 </button>
             </div>

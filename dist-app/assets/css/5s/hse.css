@@ -58,12 +58,19 @@ h3,
 .brand-text {
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
     background: linear-gradient(135deg, #f8fafc 0%, #10b981 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
 }
 
 /* Search Bar */
@@ -578,4 +585,247 @@ h6 {
         opacity: 1; 
         transform: translateY(0) scale(1); 
     }
+}
+
+/* ==========================================================================
+   CATEGORY PILL TABS
+   ========================================================================== */
+.category-tabs {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.tab-pill {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    color: var(--text-muted);
+    padding: 0.5rem 1.1rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: inherit;
+    outline: none;
+}
+
+.tab-pill:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-2px);
+}
+
+.tab-pill.active {
+    background: rgba(16, 185, 129, 0.16);
+    border-color: var(--primary);
+    color: #34d399;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+}
+
+.tab-count {
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.tab-pill.active .tab-count {
+    background: var(--primary);
+    color: #042f2e;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   WORKSPACE INLINE VIEW LAYOUT
+   ========================================================================== */
+.view-section {
+    animation: fadeIn 0.35s ease;
+}
+
+.workspace-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    border-radius: 12px;
+    padding: 1.1rem 1.75rem;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+    box-shadow: var(--card-shadow);
+}
+
+.workspace-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.btn-back-hub {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.btn-back-hub:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: var(--primary);
+    color: #34d399;
+    transform: translateX(-3px);
+}
+
+.workspace-title-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-breadcrumb {
+    font-size: 0.8rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.workspace-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+}
+
+.workspace-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.workspace-body {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    border-radius: 12px;
+    padding: 1.5rem;
+    min-height: 550px;
+    box-shadow: var(--card-shadow);
+    position: relative;
+}
+
+/* ==========================================================================
+   WORKSPACE ENHANCEMENTS: TABLE & SEARCH & MONTHS
+   ========================================================================== */
+.workspace-search-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.workspace-search-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.55rem 1rem;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    outline: none;
+    min-width: 260px;
+    transition: var(--transition);
+}
+
+.workspace-search-input:focus {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow-x: auto;
+    max-height: 72vh;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hse-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.hse-table thead th {
+    position: sticky;
+    top: 0;
+    background: #1e293b;
+    z-index: 10;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+    white-space: nowrap;
+}
+
+.hse-table tbody tr {
+    transition: var(--transition);
+}
+
+.hse-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Month Grid Improvements */
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.month-card {
+    cursor: pointer;
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    transition: var(--transition);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.month-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.card-category-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+    display: block;
 }

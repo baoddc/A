@@ -29,25 +29,81 @@
 
 
     <main class="dashboard-content">
-        <!-- New Search Bar (styled to match theme) -->
-        <div class="search-section">
-            <h1 class="brand-text">Hệ thống quản lý HSE</h1>
-            <div class="search-bar">
-                <div class="search-input-wrapper">
+        <!-- HUB VIEW: Trung tâm điều phối -->
+        <div id="hubView" class="view-section active">
+            <div class="search-section">
+                <h1 class="brand-text">Hệ thống quản lý HSE</h1>
+                <p class="brand-subtitle">An Toàn - Vệ Sinh Lao Động & Môi Trường DDC</p>
+                <div class="search-bar">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="globalSearch" placeholder="Tìm kiếm chức năng, kế hoạch, hình ảnh, CCDC...">
+                    </div>
+                </div>
 
-                    <input type="text" id="globalSearch" placeholder="Tìm kiếm chức năng, dữ liệu...">
+                <!-- Category Filter Tabs -->
+                <div class="category-tabs" id="categoryTabs">
+                    <button class="tab-pill active" data-category="all">
+                        <span>Tất cả</span>
+                        <span class="tab-count" id="countAll">11</span>
+                    </button>
+                    <button class="tab-pill" data-category="plan">
+                        <span>📋 Kế hoạch & Lịch</span>
+                        <span class="tab-count" id="countPlan">3</span>
+                    </button>
+                    <button class="tab-pill" data-category="media">
+                        <span>📸 Hình ảnh & 5S</span>
+                        <span class="tab-count" id="countMedia">3</span>
+                    </button>
+                    <button class="tab-pill" data-category="tools">
+                        <span>🛠️ CCDC & Tiêu chuẩn</span>
+                        <span class="tab-count" id="countTools">4</span>
+                    </button>
+                    <button class="tab-pill" data-category="fix">
+                        <span>⚡ Khắc phục 5S</span>
+                        <span class="tab-count" id="countFix">1</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid danh sách 11 phân hệ -->
+            <div class="dashboard-grid" id="moduleGrid">
+                <!-- Loading Indicator -->
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Đang tải dữ liệu HSE...</p>
                 </div>
             </div>
         </div>
 
-        <div class="dashboard-grid" id="moduleGrid">
-            <!-- Loading Indicator -->
-            <div id="loadingOverlay" class="loading-overlay">
-                <div class="spinner"></div>
-                <p>Đang tải dữ liệu HSE...</p>
+        <!-- WORKSPACE VIEW: Khu vực thao tác toàn màn hình -->
+        <div id="workspaceView" class="view-section" style="display: none;">
+            <div class="workspace-topbar">
+                <div class="workspace-nav-left">
+                    <button class="btn-back-hub" id="btnBackHub" title="Quay lại danh sách chức năng">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                        <span>Quay lại</span>
+                    </button>
+                    <div class="workspace-title-box">
+                        <div class="workspace-breadcrumb" id="workspaceBreadcrumb">HSE / Chức năng</div>
+                        <h2 class="workspace-title" id="workspaceTitle">Tiêu đề phân hệ</h2>
+                    </div>
+                </div>
+                <div class="workspace-nav-right" id="workspaceActions">
+                    <!-- Action buttons dynamically injected -->
+                </div>
             </div>
 
-            <!-- Cards will be injected here by JS -->
+            <!-- Workspace Body: Nơi chứa bảng dữ liệu, gallery, hoặc tháng -->
+            <div class="workspace-body" id="workspaceBody">
+                <!-- Dynamic content will be injected here -->
+            </div>
         </div>
     </main>
 
