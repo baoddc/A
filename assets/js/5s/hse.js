@@ -280,6 +280,8 @@ class DashboardManager {
 
         this.modules = HSE_MODULES;
         this.activeCategory = 'all';
+        this.currentGalleryImages = [];
+        this.currentImageIndex = -1;
         this.init();
     }
 
@@ -473,8 +475,32 @@ class DashboardManager {
             if (this.modal && e.target === this.modal) this.closeModal(); 
         };
 
-        // ESC key to return or close modal
+        // Keyboard navigation (ESC to close, ArrowLeft/Right to switch images)
         document.addEventListener('keydown', (e) => {
+            const customLightbox = document.getElementById('custom-lightbox');
+            const isLightboxOpen = customLightbox && customLightbox.style.display === 'flex';
+
+            if (isLightboxOpen) {
+                if (e.key === 'ArrowLeft') {
+                    this.lightboxNavigate(-1);
+                    return;
+                } else if (e.key === 'ArrowRight') {
+                    this.lightboxNavigate(1);
+                    return;
+                } else if (e.key === 'Escape') {
+                    this.closeImageLightbox();
+                    return;
+                }
+            }
+
+            const pdfLightbox = document.getElementById('pdf-lightbox');
+            const isPdfLightboxOpen = pdfLightbox && pdfLightbox.style.display === 'flex';
+            if (isPdfLightboxOpen && e.key === 'Escape') {
+                const closePdfBtn = document.getElementById('close-pdf-lightbox');
+                if (closePdfBtn) closePdfBtn.click();
+                return;
+            }
+
             if (e.key === 'Escape') {
                 if (this.modal && this.modal.classList.contains('active')) {
                     this.closeModal();
@@ -632,6 +658,18 @@ class DashboardManager {
         const rows = data.slice(1);
         const moduleId = this.currentModuleId;
 
+        // Collect all images in current table for lightbox navigation
+        this.currentGalleryImages = [];
+        rows.forEach(row => {
+            row.forEach(cell => {
+                if (typeof cell === 'string' && cell.startsWith('http') && (cell.includes('drive.google.com') || cell.match(/\.(jpeg|jpg|gif|png|webp)/i))) {
+                    if (!this.currentGalleryImages.includes(cell)) {
+                        this.currentGalleryImages.push(cell);
+                    }
+                }
+            });
+        });
+
         let html = `
             <div class="workspace-search-wrap">
                 <input type="text" id="tableFilterInput" class="workspace-search-input" placeholder="🔍 Tìm nhanh trong bảng tính...">
@@ -770,6 +808,9 @@ class DashboardManager {
 
     renderGallery(data, moduleId) {
         const rows = (data && data.length > 1) ? data.slice(1) : [];
+
+        // Collect all images in current gallery for lightbox navigation
+        this.currentGalleryImages = rows.map(r => r[2]).filter(u => u && typeof u === 'string' && u.startsWith('http'));
 
         if (this.workspaceActions) {
             this.workspaceActions.innerHTML = `
@@ -1014,14 +1055,37 @@ class DashboardManager {
     }
 
     openImageLightbox(url) {
+        // Find or gather images in current view
+        if (!this.currentGalleryImages || this.currentGalleryImages.length === 0 || !this.currentGalleryImages.includes(url)) {
+            const domImgs = Array.from(document.querySelectorAll('.gallery-item img, .table-img-thumb'));
+            const extracted = [];
+            domImgs.forEach(img => {
+                const onclickAttr = img.getAttribute('onclick') || '';
+                const match = onclickAttr.match(/openImageLightbox\(['"]([^'"]+)['"]\)/);
+                if (match && match[1]) {
+                    if (!extracted.includes(match[1])) extracted.push(match[1]);
+                }
+            });
+            if (extracted.length > 0) {
+                this.currentGalleryImages = extracted;
+            } else {
+                this.currentGalleryImages = [url];
+            }
+        }
+
+        this.currentImageIndex = this.currentGalleryImages.indexOf(url);
+        if (this.currentImageIndex === -1) {
+            this.currentGalleryImages.unshift(url);
+            this.currentImageIndex = 0;
+        }
+
         let lightbox = document.getElementById('custom-lightbox');
         if (!lightbox) {
             lightbox = document.createElement('div');
             lightbox.id = 'custom-lightbox';
-            // Style for Overlay
             lightbox.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-                background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); 
+                background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(10px); 
                 display: flex; align-items: center; justify-content: center; 
                 z-index: 10000; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
                 cursor: zoom-out;
@@ -1030,38 +1094,73 @@ class DashboardManager {
             // Close Button (X)
             const closeBtn = document.createElement('div');
             closeBtn.innerHTML = '&times;';
+            closeBtn.title = 'Đóng (Esc)';
             closeBtn.style.cssText = `
                 position: absolute; top: 20px; right: 30px; color: white; 
                 font-size: 40px; font-weight: 300; cursor: pointer; 
-                z-index: 10001; transition: transform 0.2s;
+                z-index: 10003; transition: transform 0.2s; line-height: 1;
             `;
             closeBtn.onmouseover = () => closeBtn.style.transform = 'scale(1.2)';
             closeBtn.onmouseout = () => closeBtn.style.transform = 'scale(1)';
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.closeImageLightbox();
+            };
             lightbox.appendChild(closeBtn);
+
+            // Counter Badge (Top Center)
+            const counterBadge = document.createElement('div');
+            counterBadge.id = 'lightbox-counter';
+            counterBadge.className = 'lightbox-counter-badge';
+            lightbox.appendChild(counterBadge);
+
+            // Prev Button (<)
+            const prevBtn = document.createElement('button');
+            prevBtn.id = 'lightbox-prev';
+            prevBtn.className = 'lightbox-nav-btn prev';
+            prevBtn.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            prevBtn.title = 'Ảnh trước (Mũi tên trái)';
+            prevBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.lightboxNavigate(-1);
+            };
+            lightbox.appendChild(prevBtn);
+
+            // Next Button (>)
+            const nextBtn = document.createElement('button');
+            nextBtn.id = 'lightbox-next';
+            nextBtn.className = 'lightbox-nav-btn next';
+            nextBtn.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+            nextBtn.title = 'Ảnh kế tiếp (Mũi tên phải)';
+            nextBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.lightboxNavigate(1);
+            };
+            lightbox.appendChild(nextBtn);
 
             // Image Container
             const imgContainer = document.createElement('div');
-            imgContainer.style.cssText = 'position: relative; display: flex; flex-direction: column; align-items: center; gap: 1rem;';
+            imgContainer.style.cssText = 'position: relative; display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 90vw; max-height: 90vh;';
 
             const img = document.createElement('img');
             img.id = 'lightbox-img';
             img.style.cssText = `
-                max-width: 90vw; max-height: 85vh; object-fit: contain; 
-                border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
-                transform: scale(0.9); transition: transform 0.3s ease; border: 1px solid rgba(255,255,255,0.1);
+                max-width: 88vw; max-height: 80vh; object-fit: contain; 
+                border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
+                transform: scale(0.9); transition: transform 0.3s ease, opacity 0.25s ease; border: 1px solid rgba(255,255,255,0.15);
             `;
             imgContainer.appendChild(img);
 
             // Download Button
             const downloadBtn = document.createElement('a');
             downloadBtn.id = 'lightbox-download';
-            downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Tải ảnh về';
+            downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Tải ảnh gốc';
             downloadBtn.style.cssText = `
                 color: white; text-decoration: none; background: rgba(255,255,255,0.1); 
-                padding: 8px 20px; border-radius: 20px; font-size: 0.9rem; 
-                backdrop-filter: blur(4px); transition: 0.2s; border: 1px solid rgba(255,255,255,0.2);
+                padding: 8px 22px; border-radius: 20px; font-size: 0.9rem; 
+                backdrop-filter: blur(6px); transition: 0.2s; border: 1px solid rgba(255,255,255,0.25);
             `;
-            downloadBtn.onmouseover = () => downloadBtn.style.background = 'rgba(255,255,255,0.2)';
+            downloadBtn.onmouseover = () => downloadBtn.style.background = 'rgba(255,255,255,0.22)';
             downloadBtn.onmouseout = () => downloadBtn.style.background = 'rgba(255,255,255,0.1)';
             downloadBtn.target = "_blank";
             imgContainer.appendChild(downloadBtn);
@@ -1069,18 +1168,34 @@ class DashboardManager {
             lightbox.appendChild(imgContainer);
 
             lightbox.onclick = (e) => {
-                if (e.target !== downloadBtn && !downloadBtn.contains(e.target)) {
-                    lightbox.style.opacity = '0';
-                    img.style.transform = 'scale(0.9)';
-                    setTimeout(() => { lightbox.style.display = 'none'; }, 300);
+                if (e.target !== downloadBtn && !downloadBtn.contains(e.target) &&
+                    e.target !== prevBtn && !prevBtn.contains(e.target) &&
+                    e.target !== nextBtn && !nextBtn.contains(e.target)) {
+                    this.closeImageLightbox();
                 }
             };
 
             document.body.appendChild(lightbox);
         }
 
+        this.updateLightboxImage(url);
+        lightbox.style.display = 'flex';
+
+        setTimeout(() => {
+            lightbox.style.opacity = '1';
+            const imgEl = document.getElementById('lightbox-img');
+            if (imgEl) imgEl.style.transform = 'scale(1)';
+        }, 10);
+    }
+
+    updateLightboxImage(url) {
         const imgEl = document.getElementById('lightbox-img');
         const downloadEl = document.getElementById('lightbox-download');
+        const counterEl = document.getElementById('lightbox-counter');
+        const prevBtn = document.getElementById('lightbox-prev');
+        const nextBtn = document.getElementById('lightbox-next');
+
+        if (!url) return;
 
         let displayUrl = url;
         if (url.includes('drive.google.com/file/d/')) {
@@ -1090,14 +1205,45 @@ class DashboardManager {
             }
         }
 
-        imgEl.src = displayUrl;
-        downloadEl.href = url;
-        lightbox.style.display = 'flex';
+        if (imgEl) {
+            imgEl.style.opacity = '0.35';
+            imgEl.src = displayUrl;
+            imgEl.onload = () => { imgEl.style.opacity = '1'; };
+            setTimeout(() => { if (imgEl) imgEl.style.opacity = '1'; }, 250);
+        }
 
-        setTimeout(() => {
-            lightbox.style.opacity = '1';
-            imgEl.style.transform = 'scale(1)';
-        }, 10);
+        if (downloadEl) downloadEl.href = url;
+
+        const totalImages = this.currentGalleryImages ? this.currentGalleryImages.length : 0;
+        if (counterEl) {
+            if (totalImages > 1) {
+                counterEl.textContent = `Ảnh ${this.currentImageIndex + 1} / ${totalImages}`;
+                counterEl.style.display = 'block';
+            } else {
+                counterEl.style.display = 'none';
+            }
+        }
+
+        const hasMultiple = totalImages > 1;
+        if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
+        if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+    }
+
+    lightboxNavigate(direction) {
+        if (!this.currentGalleryImages || this.currentGalleryImages.length <= 1) return;
+        this.currentImageIndex = (this.currentImageIndex + direction + this.currentGalleryImages.length) % this.currentGalleryImages.length;
+        const nextUrl = this.currentGalleryImages[this.currentImageIndex];
+        this.updateLightboxImage(nextUrl);
+    }
+
+    closeImageLightbox() {
+        const lightbox = document.getElementById('custom-lightbox');
+        const img = document.getElementById('lightbox-img');
+        if (lightbox) {
+            lightbox.style.opacity = '0';
+            if (img) img.style.transform = 'scale(0.9)';
+            setTimeout(() => { lightbox.style.display = 'none'; }, 300);
+        }
     }
 
     openPdfLightbox(url) {
