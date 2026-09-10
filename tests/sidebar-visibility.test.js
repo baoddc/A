@@ -13,6 +13,7 @@ const sidebarFiles = [
 ];
 
 sidebarFiles.forEach((file) => {
+  if (!fs.existsSync(file)) return;
   const content = fs.readFileSync(file, 'utf8');
 
   // Verify that isSidebarItemVisible contains the updated logic

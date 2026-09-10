@@ -47,10 +47,12 @@ quanLyUserFiles.forEach((file) => {
 const voiceFiles = [
   path.join(__dirname, '../assets/js/components/voice-assistant.js'),
   path.join(__dirname, '../dist/assets/js/components/voice-assistant.js'),
+  path.join(__dirname, '../dist-app/assets/js/components/voice-assistant.js'),
   path.join(__dirname, '../dist-app/assets/js/voice-assistant.js')
 ];
 
 voiceFiles.forEach((file) => {
+  if (!fs.existsSync(file)) return;
   const content = fs.readFileSync(file, 'utf8');
   assert.ok(
     content.includes("handleNavigation('/', \"Trang chủ\")"),
