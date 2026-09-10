@@ -116,4 +116,31 @@ function createTestSandbox(pathname, currentUser, userGroupPerms, elements = [])
   console.log('[PASS] Test 3: Correctly detects tem_qr group from URL /pages/tem-nhan-kiem-ke/kiem-ke.html');
 }
 
+// Test 4: Verify HTML files contain data-perm attributes
+{
+  const targetHtmlFiles = [
+    'pages/xg/xg-nhap.html',
+    'pages/xg/xg-xuat.html',
+    'pages/tole/tole-nhap.html',
+    'pages/tole/tole-xuat.html',
+    'pages/pl/pl-can-thu.html',
+    'pages/pl/pl-da-thu.html',
+    'pages/pl/pl-chua-thu.html',
+    'pages/pl/pl-phieu-in.html',
+    'pages/tem-nhan-kiem-ke/kiem-ke.html',
+    'pages/tem-nhan-kiem-ke/in-tem-vitri.html'
+  ];
+
+  targetHtmlFiles.forEach(relPath => {
+    const filePath = path.join(__dirname, '..', relPath);
+    assert.ok(fs.existsSync(filePath), `File ${relPath} must exist`);
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      content.includes('data-perm='),
+      `File ${relPath} must contain at least one data-perm attribute`
+    );
+    console.log(`[PASS] Verified data-perm in ${relPath}`);
+  });
+}
+
 console.log('--- ALL HTML DATA-PERM & ENFORCER TESTS PASSED! ---');
