@@ -176,6 +176,76 @@ if (typeof window !== 'undefined') {
   window.getUserPermissions = getUserPermissions;
 }
 
+/**
+ * Tự động phát hiện nhóm nghiệp vụ từ đường dẫn URL
+ * @param {string} [pathname] - Đường dẫn URL cần kiểm tra
+ * @returns {string} Mã nhóm: 'xg', 'tole', 'pl', 'tem_qr', '5s', 'chung', 'admin'
+ */
+function detectCurrentGroupName(pathname) {
+  const path = (pathname || (typeof window !== 'undefined' && window.location && window.location.pathname) || '').toLowerCase();
+  if (path.includes('/pages/xg/') || path.includes('/xg-')) return 'xg';
+  if (path.includes('/pages/tole/') || path.includes('/tole-')) return 'tole';
+  if (path.includes('/pages/pl/') || path.includes('/pl-') || path.includes('form-in')) return 'pl';
+  if (path.includes('/pages/tem-nhan-kiem-ke/') || path.includes('in-tem-vitri') || path.includes('vi-tri-ton') || path.includes('kiem-ke')) return 'tem_qr';
+  if (path.includes('/pages/5s/') || path.includes('hse') || path.includes('so-do')) return '5s';
+  if (path.includes('/pages/cong-viec') || path.includes('/cong-viec')) return 'chung';
+  if (path.includes('/pages/quan-ly-user') || path.includes('quan-ly-user')) return 'admin';
+  return 'chung';
+}
+
+/**
+ * Tự động quét và áp dụng quyền thao tác lên tất cả các phần tử có thuộc tính [data-perm]
+ * @param {string} [targetGroup=null] - Mã nhóm cần áp dụng quyền (nếu để trống sẽ tự nhận diện theo URL)
+ */
+function applyElementPermissions(targetGroup = null) {
+  if (typeof document === 'undefined') return;
+  const group = targetGroup || detectCurrentGroupName();
+  const perms = getUserPermissions(group);
+
+  // Nếu là Admin (bao.lt) hoặc có toàn quyền admin, giữ nguyên tất cả các nút
+  if (perms && perms.isAdmin) {
+    return;
+  }
+
+  const elements = document.querySelectorAll('[data-perm]');
+  elements.forEach(el => {
+    const rawVal = typeof el.getAttribute === 'function' ? el.getAttribute('data-perm') : (el.dataset && el.dataset.perm);
+    const requiredPerm = (rawVal || '').toLowerCase().trim();
+    if (!requiredPerm) return;
+
+    let allowed = false;
+    if (requiredPerm === 'add') {
+      allowed = !!perms.canAdd;
+    } else if (requiredPerm === 'edit') {
+      allowed = !!perms.canEdit;
+    } else if (requiredPerm === 'delete') {
+      allowed = !!perms.canDelete;
+    } else if (requiredPerm === 'view') {
+      allowed = !!perms.canView;
+    }
+
+    if (!allowed) {
+      el.style.display = 'none';
+      if (typeof el.setAttribute === 'function') {
+        el.setAttribute('data-perm-hidden', 'true');
+      }
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.detectCurrentGroupName = detectCurrentGroupName;
+  window.applyElementPermissions = applyElementPermissions;
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => applyElementPermissions());
+    } else {
+      setTimeout(() => applyElementPermissions(), 0);
+    }
+  }
+}
+
 
 /**
  * Displays a centered warning modal popup on screen.
