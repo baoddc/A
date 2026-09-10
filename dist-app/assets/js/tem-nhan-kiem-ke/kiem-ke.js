@@ -77,11 +77,39 @@ function initKiemKeApp() {
   let lastScanBarcode = '';
   let lastScanTime = 0;
 
-  // Restore Session
+  // Kiểm tra quyền xóa (Chỉ duy nhất user bao.lt hoặc admin hệ thống)
+  function canUserDeleteKiemKe() {
+    const profile = typeof window.getCachedUserProfile === 'function' ? window.getCachedUserProfile() : null;
+    if (profile && (profile.is_admin || String(profile.username || '').toLowerCase() === 'bao.lt')) {
+      return true;
+    }
+    const currentUser = (typeof localStorage !== 'undefined' && localStorage.getItem('currentUser')) || (typeof window !== 'undefined' && window.currentUser);
+    return !!(currentUser && String(currentUser).trim().toLowerCase() === 'bao.lt');
+  }
+
+  // Cập nhật hiển thị các nút thao tác Xóa / Làm lại trên giao diện
+  function applyDeletePermissionsUI() {
+    const canDelete = canUserDeleteKiemKe();
+    if (btnResetSession) {
+      if (canDelete) {
+        btnResetSession.classList.remove('d-none');
+      } else {
+        btnResetSession.classList.add('d-none');
+      }
+    }
+    if (btnClearFeedOnly) {
+      if (canDelete) {
+        btnClearFeedOnly.classList.remove('d-none');
+      } else {
+        btnClearFeedOnly.classList.add('d-none');
+      }
+    }
+  }
+
+  // Restore Session (Bộ nhớ đệm tạm thời)
   const savedSession = window.KiemKeStorage ? window.KiemKeStorage.loadSession() : { scannedRolls: [], excelMetadata: null };
   if (savedSession.scannedRolls && savedSession.scannedRolls.length > 0) {
     scannedRolls = savedSession.scannedRolls;
-    showToast(`Đã khôi phục phiên quét gồm ${scannedRolls.length} cuộn.`, 'info');
   }
 
   if (savedSession.excelMetadata && savedSession.excelMetadata.items) {
@@ -95,8 +123,51 @@ function initKiemKeApp() {
     excelMap = new Map(savedSession.excelMetadata.items);
   }
 
-  // Initial Load Supabase
+  // Tải danh sách cuộn quét từ bảng kiem_ke_scans trên Supabase
+  async function loadSupabaseScannedRolls() {
+    if (!window.KiemKeStorage || typeof window.KiemKeStorage.fetchScannedRollsFromSupabase !== 'function') return;
+    try {
+      const cloudScans = await window.KiemKeStorage.fetchScannedRollsFromSupabase();
+      if (Array.isArray(cloudScans)) {
+        scannedRolls = cloudScans;
+        recalculateAndRender();
+      }
+    } catch (e) {
+      console.warn('Lỗi đồng bộ cuộn từ Supabase:', e);
+    }
+  }
+
+  // Áp dụng quyền xóa ban đầu
+  applyDeletePermissionsUI();
+
+  // Initial Load Supabase (Tồn hệ thống + Danh sách cuộn quét)
   loadSupabaseStock();
+  loadSupabaseScannedRolls();
+
+  // Đăng ký nhận sự kiện Realtime từ Supabase
+  if (window.KiemKeStorage && typeof window.KiemKeStorage.subscribeRealtimeChanges === 'function') {
+    window.KiemKeStorage.subscribeRealtimeChanges(
+      // Khi có người dùng khác quét thêm cuộn
+      (newRoll) => {
+        const exists = scannedRolls.some(r => String(r.id) === String(newRoll.id) || (r.barcode === newRoll.barcode && r.createdAt && r.createdAt === newRoll.createdAt));
+        if (!exists) {
+          scannedRolls.unshift(newRoll);
+          recalculateAndRender();
+          const who = newRoll.scannedBy ? `từ ${newRoll.scannedBy}` : '';
+          showToast(`Đã nhận cuộn mới quét ${who}: ${newRoll.maVatTu} - ${newRoll.batch} (${formatKg(newRoll.kg)} kg)`, 'info');
+        }
+      },
+      // Khi người quản trị bao.lt xóa cuộn
+      (deletedId) => {
+        const idx = scannedRolls.findIndex(r => String(r.id) === String(deletedId));
+        if (idx !== -1) {
+          scannedRolls.splice(idx, 1);
+          recalculateAndRender();
+          showToast('Một cuộn vừa được người quản trị xóa khỏi hệ thống.', 'warning');
+        }
+      }
+    );
+  }
 
   // Keep scanner focused continuously
   function keepFocusOnScanner() {
@@ -297,17 +368,29 @@ function initKiemKeApp() {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
+    const currentUser = (typeof localStorage !== 'undefined' && localStorage.getItem('currentUser')) || 'guest';
     const rollItem = {
       id: Date.now() + Math.random().toString(36).substr(2, 5),
       barcode: text,
       maVatTu: parsed.maVatTu || text,
       batch: parsed.batch || '',
       kg: parsed.kg || 0,
-      timestamp: timeStr
+      timestamp: timeStr,
+      scannedBy: currentUser
     };
 
     scannedRolls.unshift(rollItem);
     window.KiemKeStorage.saveSession(scannedRolls, excelMeta);
+
+    // Gửi bản ghi quét lên Supabase tập trung
+    if (window.KiemKeStorage && typeof window.KiemKeStorage.insertScannedRollToSupabase === 'function') {
+      window.KiemKeStorage.insertScannedRollToSupabase(rollItem).then(saved => {
+        if (saved && saved.id) {
+          rollItem.id = String(saved.id);
+          rollItem.createdAt = saved.createdAt;
+        }
+      }).catch(err => console.warn('Lỗi ghi cuộn quét lên Supabase:', err));
+    }
 
     if (existingCount > 0) {
       showToast(`Đã thêm cuộn (lần ${existingCount + 1}): ${rollItem.maVatTu} - ${rollItem.batch} (${formatKg(rollItem.kg)} kg)`, 'info');
@@ -494,8 +577,15 @@ function initKiemKeApp() {
       return;
     }
 
+    const canDelete = canUserDeleteKiemKe();
     let html = '';
     scannedRolls.forEach((item, idx) => {
+      const deleteBtnHtml = canDelete
+        ? `<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-scanned" data-id="${item.id}" title="Xóa cuộn này">
+             <i class="bi bi-x-lg"></i>
+           </button>`
+        : `<span class="text-muted opacity-50" title="Chỉ bao.lt mới có quyền xóa"><i class="bi bi-lock-fill"></i></span>`;
+
       html += `
         <tr class="${idx === 0 ? 'kk-feed-item-new' : ''}">
           <td class="text-center text-muted fw-bold">${idx + 1}</td>
@@ -505,9 +595,7 @@ function initKiemKeApp() {
           <td>${escapeHtml(item.batch || '-')}</td>
           <td class="text-end fw-bold text-warning">${formatKg(item.kg)}</td>
           <td class="text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-scanned" data-id="${item.id}" title="Xóa cuộn này">
-              <i class="bi bi-x-lg"></i>
-            </button>
+            ${deleteBtnHtml}
           </td>
         </tr>
       `;
@@ -515,23 +603,38 @@ function initKiemKeApp() {
 
     scannedRollsTableBody.innerHTML = html;
 
-    // Attach delete listeners
-    scannedRollsTableBody.querySelectorAll('.btn-delete-scanned').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        deleteScannedRoll(id);
+    // Attach delete listeners nếu có quyền
+    if (canDelete) {
+      scannedRollsTableBody.querySelectorAll('.btn-delete-scanned').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          deleteScannedRoll(id);
+        });
       });
-    });
+    }
   }
 
-  function deleteScannedRoll(id) {
-    const idx = scannedRolls.findIndex(x => x.id === id);
+  async function deleteScannedRoll(id) {
+    if (!canUserDeleteKiemKe()) {
+      showToast('Từ chối: Chỉ tài khoản "bao.lt" mới có quyền xóa dữ liệu quét!', 'danger');
+      return;
+    }
+
+    const idx = scannedRolls.findIndex(x => String(x.id) === String(id));
     if (idx !== -1) {
-      const removed = scannedRolls.splice(idx, 1)[0];
-      window.KiemKeStorage.saveSession(scannedRolls, excelMeta);
-      showToast(`Đã xóa cuộn "${removed.barcode}".`, 'warning');
-      recalculateAndRender();
-      keepFocusOnScanner();
+      const removed = scannedRolls[idx];
+      try {
+        if (window.KiemKeStorage && typeof window.KiemKeStorage.deleteScannedRollFromSupabase === 'function') {
+          await window.KiemKeStorage.deleteScannedRollFromSupabase(removed.id);
+        }
+        scannedRolls.splice(idx, 1);
+        window.KiemKeStorage.saveSession(scannedRolls, excelMeta);
+        showToast(`Đã xóa cuộn "${removed.barcode}".`, 'warning');
+        recalculateAndRender();
+        keepFocusOnScanner();
+      } catch (err) {
+        showToast('Lỗi khi xóa cuộn trên Supabase: ' + (err.message || 'Không có quyền'), 'danger');
+      }
     }
   }
 
@@ -544,33 +647,59 @@ function initKiemKeApp() {
   }
 
   // 7. Reset Session
-  function performResetAll() {
-    scannedRolls = [];
-    excelMap = new Map();
-    excelMeta = null;
-    if (excelFileInput) excelFileInput.value = '';
-    if (lblExcelFileName) lblExcelFileName.textContent = 'Nạp File Excel Cơ Sở';
-    if (excelFileBadge) {
-      excelFileBadge.textContent = '0 dòng';
-      excelFileBadge.classList.add('d-none');
+  async function performResetAll() {
+    if (!canUserDeleteKiemKe()) {
+      showToast('Từ chối: Chỉ tài khoản "bao.lt" mới có quyền xóa toàn bộ kiểm kê!', 'danger');
+      hideResetModal();
+      return;
     }
-    window.KiemKeStorage.clearSession();
-    hideResetModal();
-    showToast('Đã làm lại toàn bộ phiên kiểm kê (xóa file Excel và cuộn quét).', 'info');
-    recalculateAndRender();
-    keepFocusOnScanner();
+
+    try {
+      if (window.KiemKeStorage && typeof window.KiemKeStorage.clearAllScannedFromSupabase === 'function') {
+        await window.KiemKeStorage.clearAllScannedFromSupabase();
+      }
+      scannedRolls = [];
+      excelMap = new Map();
+      excelMeta = null;
+      if (excelFileInput) excelFileInput.value = '';
+      if (lblExcelFileName) lblExcelFileName.textContent = 'Nạp File Excel Cơ Sở';
+      if (excelFileBadge) {
+        excelFileBadge.textContent = '0 dòng';
+        excelFileBadge.classList.add('d-none');
+      }
+      window.KiemKeStorage.clearSession();
+      hideResetModal();
+      showToast('Đã làm lại toàn bộ phiên kiểm kê (đã xóa trên Supabase).', 'info');
+      recalculateAndRender();
+      keepFocusOnScanner();
+    } catch (err) {
+      showToast('Lỗi khi xóa trên Supabase: ' + (err.message || 'Không có quyền'), 'danger');
+    }
   }
 
-  function performResetScannedOnly() {
-    scannedRolls = [];
-    window.KiemKeStorage.clearScannedOnly();
-    if (excelMeta) {
-      window.KiemKeStorage.saveSession([], excelMeta);
+  async function performResetScannedOnly() {
+    if (!canUserDeleteKiemKe()) {
+      showToast('Từ chối: Chỉ tài khoản "bao.lt" mới có quyền xóa dữ liệu quét!', 'danger');
+      hideResetModal();
+      return;
     }
-    hideResetModal();
-    showToast('Đã xóa toàn bộ cuộn đã quét (Giữ lại file Excel cơ sở).', 'info');
-    recalculateAndRender();
-    keepFocusOnScanner();
+
+    try {
+      if (window.KiemKeStorage && typeof window.KiemKeStorage.clearAllScannedFromSupabase === 'function') {
+        await window.KiemKeStorage.clearAllScannedFromSupabase();
+      }
+      scannedRolls = [];
+      window.KiemKeStorage.clearScannedOnly();
+      if (excelMeta) {
+        window.KiemKeStorage.saveSession([], excelMeta);
+      }
+      hideResetModal();
+      showToast('Đã xóa toàn bộ cuộn đã quét trên Supabase (Giữ lại file Excel cơ sở).', 'info');
+      recalculateAndRender();
+      keepFocusOnScanner();
+    } catch (err) {
+      showToast('Lỗi khi xóa trên Supabase: ' + (err.message || 'Không có quyền'), 'danger');
+    }
   }
 
   function hideResetModal() {
@@ -598,6 +727,10 @@ function initKiemKeApp() {
     btnResetSession.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (!canUserDeleteKiemKe()) {
+        showToast('Từ chối: Chỉ tài khoản "bao.lt" mới có quyền xóa phiên kiểm kê!', 'danger');
+        return;
+      }
       const modalEl = document.getElementById('resetConfirmModal');
       if (!modalEl) return;
       if (modalEl.parentElement !== document.body) {
@@ -643,11 +776,18 @@ function initKiemKeApp() {
     btnClearFeedOnly.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (!canUserDeleteKiemKe()) {
+        showToast('Từ chối: Chỉ tài khoản "bao.lt" mới có quyền xóa danh sách quét!', 'danger');
+        return;
+      }
       performResetScannedOnly();
     });
   }
   if (btnRefreshSystemData) {
-    btnRefreshSystemData.addEventListener('click', loadSupabaseStock);
+    btnRefreshSystemData.addEventListener('click', async () => {
+      await loadSupabaseStock();
+      await loadSupabaseScannedRolls();
+    });
   }
 
   // 8. Export Excel Report
@@ -1013,5 +1153,13 @@ function initKiemKeApp() {
       toast.style.transition = 'opacity 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 3500);
+  }
+
+  // Tự động cập nhật phân quyền khi trạng thái đăng nhập thay đổi
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', () => {
+      applyDeletePermissionsUI();
+      renderScannedFeedTable();
+    });
   }
 }
