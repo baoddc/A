@@ -652,6 +652,12 @@
 
   const NAV_ITEMS = [
     {
+      id: 'nav-about',
+      label: 'GIỚI THIỆU',
+      href: '/pages/trang-chu/about.html',
+      icon: `<svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    },
+    {
       id: 'nav-5s',
       label: '5S',
       icon: `<svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
@@ -715,12 +721,6 @@
         { label: 'Tra cứu Tồn theo Kệ', href: '/pages/tem-nhan-kiem-ke/vi-tri-ton.html' },
         { label: 'Kiểm kê Tồn kho', href: '/pages/tem-nhan-kiem-ke/kiem-ke.html' },
       ]
-    },
-    {
-      id: 'nav-about',
-      label: 'GIỚI THIỆU',
-      href: '/pages/trang-chu/about.html',
-      icon: `<svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
     },
     {
       id: 'nav-cong-viec',
