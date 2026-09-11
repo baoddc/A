@@ -39,3 +39,17 @@ CREATE POLICY "Only bao.lt can delete kiem_ke_scans" ON public.kiem_ke_scans
         OR LOWER((SELECT username FROM public.user_profiles WHERE id = auth.uid())) = 'bao.lt'
         OR auth.uid() IS NULL -- Fallback cho môi trường test nếu không có session
     );
+
+-- 4. Kích hoạt Realtime cho bảng kiem_ke_scans (để mọi máy nhận được INSERT/DELETE tức thì)
+ALTER TABLE public.kiem_ke_scans REPLICA IDENTITY FULL;
+
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'kiem_ke_scans'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.kiem_ke_scans;
+        END IF;
+    END IF;
+END $$;

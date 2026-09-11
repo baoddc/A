@@ -214,10 +214,12 @@
     }
   }
 
+  let activeRealtimeChannel = null;
+
   /**
-   * Lắng nghe thay đổi Realtime trên bảng kiem_ke_scans
+   * Lắng nghe thay đổi Realtime trên bảng kiem_ke_scans và kênh broadcast
    */
-  function subscribeRealtimeChanges(onInsert, onDelete) {
+  function subscribeRealtimeChanges(onInsert, onDelete, onReset) {
     const client = getSupabaseClient();
     if (!client || typeof client.channel !== 'function') return null;
 
@@ -248,12 +250,39 @@
             onDelete(String(payload.old.id));
           }
         })
+        .on('broadcast', { event: 'RESET_SESSION' }, eventPayload => {
+          if (typeof onReset === 'function') {
+            onReset(eventPayload && eventPayload.payload ? eventPayload.payload : {});
+          }
+        })
         .subscribe();
 
+      activeRealtimeChannel = channel;
       return channel;
     } catch (e) {
       console.warn('Lỗi khởi tạo Supabase Realtime channel:', e);
       return null;
+    }
+  }
+
+  /**
+   * Gửi thông báo broadcast khi quản trị viên reset phiên làm việc
+   */
+  function broadcastResetSession(resetType) {
+    if (!activeRealtimeChannel) return;
+    try {
+      const currentUser = (typeof localStorage !== 'undefined' && localStorage.getItem('currentUser')) || 'bao.lt';
+      activeRealtimeChannel.send({
+        type: 'broadcast',
+        event: 'RESET_SESSION',
+        payload: {
+          resetType: resetType || 'all',
+          scannedBy: currentUser,
+          timestamp: Date.now()
+        }
+      });
+    } catch (err) {
+      console.warn('Lỗi gửi broadcast reset:', err);
     }
   }
 
@@ -319,6 +348,7 @@
     deleteScannedRollFromSupabase,
     clearAllScannedFromSupabase,
     subscribeRealtimeChanges,
+    broadcastResetSession,
     playBeepSuccess,
     playBoopError
   };

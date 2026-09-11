@@ -152,6 +152,9 @@ function initKiemKeApp() {
         const exists = scannedRolls.some(r => String(r.id) === String(newRoll.id) || (r.barcode === newRoll.barcode && r.createdAt && r.createdAt === newRoll.createdAt));
         if (!exists) {
           scannedRolls.unshift(newRoll);
+          if (window.KiemKeStorage && typeof window.KiemKeStorage.saveSession === 'function') {
+            window.KiemKeStorage.saveSession(scannedRolls, excelMeta);
+          }
           recalculateAndRender();
           const who = newRoll.scannedBy ? `từ ${newRoll.scannedBy}` : '';
           showToast(`Đã nhận cuộn mới quét ${who}: ${newRoll.maVatTu} - ${newRoll.batch} (${formatKg(newRoll.kg)} kg)`, 'info');
@@ -161,10 +164,38 @@ function initKiemKeApp() {
       (deletedId) => {
         const idx = scannedRolls.findIndex(r => String(r.id) === String(deletedId));
         if (idx !== -1) {
+          const removed = scannedRolls[idx];
           scannedRolls.splice(idx, 1);
+          if (window.KiemKeStorage && typeof window.KiemKeStorage.saveSession === 'function') {
+            window.KiemKeStorage.saveSession(scannedRolls, excelMeta);
+          }
           recalculateAndRender();
-          showToast('Một cuộn vừa được người quản trị xóa khỏi hệ thống.', 'warning');
+          showToast(`Cuộn "${removed.barcode || ''}" vừa được người quản trị xóa khỏi hệ thống.`, 'warning');
         }
+      },
+      // Khi người quản trị bao.lt reset phiên kiểm kê
+      (resetPayload) => {
+        scannedRolls = [];
+        const isResetAll = resetPayload && resetPayload.resetType === 'all';
+        if (isResetAll) {
+          excelMap = new Map();
+          excelMeta = null;
+          if (excelFileInput) excelFileInput.value = '';
+          if (lblExcelFileName) lblExcelFileName.textContent = 'Nạp File Excel Cơ Sở';
+          if (excelFileBadge) {
+            excelFileBadge.textContent = '0 dòng';
+            excelFileBadge.classList.add('d-none');
+          }
+          window.KiemKeStorage.clearSession();
+          showToast('Người quản trị (bao.lt) vừa làm lại toàn bộ phiên kiểm kê.', 'warning');
+        } else {
+          window.KiemKeStorage.clearScannedOnly();
+          if (excelMeta) {
+            window.KiemKeStorage.saveSession([], excelMeta);
+          }
+          showToast('Người quản trị (bao.lt) vừa xóa toàn bộ danh sách quét (giữ file Excel).', 'warning');
+        }
+        recalculateAndRender();
       }
     );
   }
@@ -668,6 +699,9 @@ function initKiemKeApp() {
         excelFileBadge.classList.add('d-none');
       }
       window.KiemKeStorage.clearSession();
+      if (window.KiemKeStorage && typeof window.KiemKeStorage.broadcastResetSession === 'function') {
+        window.KiemKeStorage.broadcastResetSession('all');
+      }
       hideResetModal();
       showToast('Đã làm lại toàn bộ phiên kiểm kê (đã xóa trên Supabase).', 'info');
       recalculateAndRender();
@@ -692,6 +726,9 @@ function initKiemKeApp() {
       window.KiemKeStorage.clearScannedOnly();
       if (excelMeta) {
         window.KiemKeStorage.saveSession([], excelMeta);
+      }
+      if (window.KiemKeStorage && typeof window.KiemKeStorage.broadcastResetSession === 'function') {
+        window.KiemKeStorage.broadcastResetSession('scanned_only');
       }
       hideResetModal();
       showToast('Đã xóa toàn bộ cuộn đã quét trên Supabase (Giữ lại file Excel cơ sở).', 'info');
